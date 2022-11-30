@@ -1,0 +1,186 @@
+grammar org.xtext.ocl.Ocl with org.eclipse.xtext.common.Terminals
+
+generate ocl "http://www.xtext.org/ocl/Ocl"
+
+Start: 
+	(Expression)? | ContextExpression;
+
+ContextExpression:
+	"context" TYPENAME_TERMINAL ("inv:"|"pre:"|"post:") Expression;
+		
+/* 6 */	
+Expression:
+	LogicalExpression;
+/* 7 */
+LogicalExpression:
+	(exp+=RelationalExpression)(op+=LogicalOperator exp+=RelationalExpression)*;
+
+/* 8 */
+RelationalExpression:
+	(exp+=AdditiveExpression)(op+=RelationalOperator exp+=AdditiveExpression)?;
+
+/* 9 */
+AdditiveExpression:
+	(exp+=MultiplicativeExpression)(op+=AddOperator exp+=MultiplicativeExpression)*;
+	
+/* 10 */
+MultiplicativeExpression:
+	(exp+=UnaryExpression)(op+=MultiplyOperator exp+=UnaryExpression)*;
+
+
+/* 11 */
+UnaryExpression:
+	 (op+=UnaryOperator)* exp=PostfixExpression;
+
+/* 12 */
+PostfixExpression:
+	PrimaryExpression (op+=NavigationOperator features+=FeatureCall )*;
+
+
+/* 13 */
+PrimaryExpression:
+	LiteralCollection | Literal | FeatureCall | "(" Expression ")" | IfExpression;
+
+/* 14 */
+IfExpression:
+	"if" exp+=Expression "then" exp+=Expression ("else" exp+=Expression)? "endif";
+
+/* 15 */
+FeatureCallParameters:
+	'(' (decs=Declarator)? params=ActualParameterList ')';
+
+/* 16 */
+Literal:
+	name=STRING | name=NUMBER | '#'name=NAME_TERMINAL;
+
+/* 17 */
+EnumerationType:
+	 "enum" '{' ('#'left=Name) (',''#'rights+=Name)* '}';
+
+/* 18 */
+SimpleTypeSpecifier:
+	PathTypeName | EnumerationType;
+
+/* 19 */
+LiteralCollection:
+	{LiteralCollection} 
+	name=CollectionKind "{" (exp=ExpressionListOrRange)? "}";
+
+/* 20 */
+ExpressionListOrRange:
+	exp+=Expression ( ( "," exp+=Expression )+ | ( ".." exp+=Expression ))?;
+
+/* 21 */
+FeatureCall:
+	PathName (params+=TimeExpression)? (params+=Qualifiers)? (params+=FeatureCallParameters)?;
+
+/* 22 */
+Qualifiers:
+	'[' ActualParameterList ']';
+
+/* 23 */
+Declarator:
+	name+=Name(',' name+=Name)* (COLON type=SimpleTypeSpecifier)? '|';
+
+/* 24 */	
+PathTypeName:
+	(left=TypeName)(DOUBLE_COLON(rights+=TypeName))*;
+
+/* 25 */	
+PathName:
+	(left=(TypeName | Name))(DOUBLE_COLON(rights+=(TypeName | Name)))*;
+
+/* 26 */
+TimeExpression:
+	'@' name=NAME_TERMINAL;
+
+/* 27 */
+ActualParameterList:
+	exp+=Expression (','exp+=Expression)*;
+
+
+/* LEXICON */
+
+TypeName:
+	name=TYPENAME_TERMINAL;
+	
+Name:
+	Attribute | Function;
+
+Attribute:
+	name=NAME_TERMINAL;
+
+/* FUNCTION */
+
+Function:
+	NoParamFunction | OneTypeParamFunction | OneStringParamFunction | TwoStringParamFunction | TwoIntegerParamFunction |
+	OneIntegerParamFunction;
+
+NoParamFunction:
+	name=(
+		"allInstaces" | "oclType" | "toString" | "refImmediateComposite" | "size" | "toInteger" | "toUpper" | 
+		"toReal" | "toLower" | "toSequence" | "trim" | "isEmpty" | "oclIsUndefined" | "floor" | "round"  | "notEmpty" |
+		"asBag" | "asSequence" | "sum" | "asSet" | "flatten" | "first" | "last"
+	) "()";
+	
+OneTypeParamFunction:
+	name=(
+		"oclTypeOf" | "oclisKindOf"
+	) "("TYPENAME_TERMINAL")";
+		
+OneStringParamFunction:
+	name=(
+		"concat" | "startsWith" | "endsWith" | "indexOf" | "lastIndexOf" | "split"
+	) "("STRING")";
+	
+TwoStringParamFunction:
+	name=(
+		"replaceAll" | "regexReplaceAll"
+	) "("STRING","STRING")";
+
+OneIntegerParamFunction:
+	name=(
+		"at"
+	) "("NUMBER")";	
+	
+TwoIntegerParamFunction:
+	name=(
+		"substring" | "subSequence" | "subOrderedSet"
+	) "("NUMBER","NUMBER")";
+		
+CollectionKind: 
+	name=("Set" | "Bag" | "Sequence" | "Collection");
+
+NavigationOperator:
+	name=("." | "->");
+
+UnaryOperator:
+	name=("-" | "not");
+
+MultiplyOperator:
+	name=("*" | "/");
+	
+AddOperator:
+	name=("+" | "-");
+
+RelationalOperator:
+	 name=("=" | ">" | "<" | ">=" | "<=" | "<>");
+
+LogicalOperator:
+	 name=("and" | "or" | "xor" | "implies");
+	 
+terminal LOWER: 'a'..'z';
+terminal UPPER: 'A'..'Z';
+terminal LETTER: UPPER | LOWER;
+terminal DIGIT: '0'..'9';
+terminal NUMBER: (DIGIT)+;
+terminal IDCHAR: LETTER | DIGIT | '_' ;
+terminal NAME_TERMINAL: LOWER(IDCHAR)*;
+terminal TYPENAME_TERMINAL: UPPER(IDCHAR)*;
+terminal DOUBLE_COLON: COLON COLON;
+terminal COLON: ':';
+	 
+
+	
+	
+	
